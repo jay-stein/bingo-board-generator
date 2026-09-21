@@ -6,8 +6,9 @@ UK 90-ball (tambola) ticket generator — roll the dice for a fresh set of board
 
 ## Features
 
-- The dice deals a brand new set of six boards that together contain every number from 1 to 90 exactly once
-- Printed-ticket layout: 3×9 grid, 15 numbers, five per row, one to three per column, ascending down each column
+- Shows three boards at a time; the dice rolls through both halves of a set, then deals a fresh one
+- Every set of six boards contains each number from 1 to 90 exactly once, so a full set marks on every call
+- Printed-ticket layout: 3×9 grid, 15 numbers, exactly five per row, one to three per column, ascending down each column
 - Click any number to daub it, with one-click clearing
 - Download 1–60 boards as an A4 PDF, three boards per page
 - Runs entirely in the browser — no server

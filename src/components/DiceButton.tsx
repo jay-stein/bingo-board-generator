@@ -3,6 +3,8 @@ import { useState } from 'react'
 interface DiceButtonProps {
   rolling: boolean
   onRoll: () => void
+  label: string
+  hint: string
 }
 
 const PIPS: Record<number, ReadonlyArray<readonly [number, number]>> = {
@@ -39,7 +41,7 @@ const PIPS: Record<number, ReadonlyArray<readonly [number, number]>> = {
   ],
 }
 
-export function DiceButton({ rolling, onRoll }: DiceButtonProps) {
+export function DiceButton({ rolling, onRoll, label, hint }: DiceButtonProps) {
   const [face, setFace] = useState(5)
 
   const roll = () => {
@@ -80,8 +82,8 @@ export function DiceButton({ rolling, onRoll }: DiceButtonProps) {
         </svg>
       </button>
       <span className="dice-label">
-        <strong>{rolling ? 'Rolling…' : 'Roll a board'}</strong>
-        <span>Deals a fresh set of six</span>
+        <strong>{rolling ? 'Rolling…' : label}</strong>
+        <span>{rolling ? 'Dealing boards' : hint}</span>
       </span>
     </div>
   )

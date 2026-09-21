@@ -7,6 +7,7 @@ import { BOARDS_PER_PAGE, downloadBoardsPdf } from './lib/pdf'
 const ROLL_DURATION_MS = 620
 const COUNT_MIN = 1
 const COUNT_MAX = 60
+const BOARDS_ON_SCREEN = 3
 
 const BACKDROP_BALLS = [
   { value: 7, top: '6%', left: '3%', size: 108, delay: -1 },
@@ -19,16 +20,14 @@ const BACKDROP_BALLS = [
   { value: 72, top: '3%', left: '49%', size: 56, delay: -8 },
 ]
 
-interface ShownBoard {
-  ticket: Ticket
+interface ShownSet {
+  tickets: Ticket[]
   setNumber: number
-  position: number
+  offset: number
 }
 
-function dealBoard(setNumber: number): ShownBoard {
-  const set = generateTicketSet()
-  const index = Math.floor(Math.random() * set.length)
-  return { ticket: set[index], setNumber, position: index + 1 }
+function dealSet(setNumber: number): ShownSet {
+  return { tickets: generateTicketSet(), setNumber, offset: 0 }
 }
 
 function clampCount(raw: string): number {
@@ -38,7 +37,7 @@ function clampCount(raw: string): number {
 }
 
 export default function App() {
-  const [shown, setShown] = useState<ShownBoard>(() => dealBoard(1))
+  const [shown, setShown] = useState<ShownSet>(() => dealSet(1))
   const [rollKey, setRollKey] = useState(0)
   const [rolling, setRolling] = useState(false)
   const [marked, setMarked] = useState<ReadonlySet<number>>(() => new Set())
@@ -51,19 +50,27 @@ export default function App() {
 
   const boardCount = clampCount(countText)
   const pageCount = Math.ceil(boardCount / BOARDS_PER_PAGE)
+  const visibleBoards = shown.tickets.slice(shown.offset, shown.offset + BOARDS_ON_SCREEN)
+  const showingFirstHalf = shown.offset === 0
 
   const roll = useCallback(() => {
     if (rolling) return
-    const next = dealBoard(setCounter.current + 1)
     setRolling(true)
+    const firstHalf = showingFirstHalf
+    const nextSetNumber = setCounter.current + 1
+
     rollTimer.current = window.setTimeout(() => {
-      setCounter.current += 1
-      setShown(next)
+      if (firstHalf) {
+        setShown((previous) => ({ ...previous, offset: BOARDS_ON_SCREEN }))
+      } else {
+        setCounter.current = nextSetNumber
+        setShown(dealSet(nextSetNumber))
+      }
       setMarked(new Set())
       setRollKey((key) => key + 1)
       setRolling(false)
     }, ROLL_DURATION_MS)
-  }, [rolling])
+  }, [rolling, showingFirstHalf])
 
   const toggleMark = useCallback((value: number) => {
     setMarked((previous) => {
@@ -113,13 +120,17 @@ export default function App() {
           <span className="brand-ball">90</span>
           <div>
             <h1>Bingo Board Generator</h1>
-            <p>
-              UK 90-ball tickets built with the <code>bingo_recipe.ipynb</code> method and finished
-              like printed tickets — every roll deals a fresh set of {TICKETS_PER_SET} boards that
-              together use all 90 numbers exactly once.
-            </p>
+            <p>UK 90-ball tickets built to the printed rules:</p>
           </div>
         </div>
+        <ul className="rules">
+          <li>3 rows × 9 columns, 15 numbers per board</li>
+          <li>Exactly 5 numbers per row, 4 blanks</li>
+          <li>Columns cover 1–9, 10–19, … 80–90</li>
+          <li>1–3 numbers per column per board</li>
+          <li>Numbers ascend down every column</li>
+          <li>Sets of six use all 90 numbers exactly once</li>
+        </ul>
       </header>
 
       <main className="stage">
@@ -127,25 +138,42 @@ export default function App() {
           <div className="board-meta">
             <span className="meta-chip">Set #{shown.setNumber}</span>
             <span className="meta-chip">
-              Board {shown.position} of {TICKETS_PER_SET}
+              Boards {shown.offset + 1}–{shown.offset + BOARDS_ON_SCREEN} of {TICKETS_PER_SET}
             </span>
+            <span className="meta-chip meta-chip-soft">All 90 numbers in this set</span>
             {marked.size > 0 && (
               <button type="button" className="meta-clear" onClick={clearMarks}>
                 Clear {marked.size} daub{marked.size === 1 ? '' : 's'}
               </button>
             )}
           </div>
-          <BingoBoard
-            ticket={shown.ticket}
-            marked={marked}
-            rolling={rolling}
-            rollKey={rollKey}
-            onToggle={toggleMark}
-          />
+          <div className="boards">
+            {visibleBoards.map((ticket, index) => (
+              <div className="board-slot" key={`${shown.setNumber}-${shown.offset}-${index}`}>
+                <span className="board-label">Board {shown.offset + index + 1}</span>
+                <BingoBoard
+                  ticket={ticket}
+                  marked={marked}
+                  rolling={rolling}
+                  rollKey={rollKey}
+                  onToggle={toggleMark}
+                />
+              </div>
+            ))}
+          </div>
         </section>
 
         <section className="controls">
-          <DiceButton rolling={rolling} onRoll={roll} />
+          <DiceButton
+            rolling={rolling}
+            onRoll={roll}
+            label={
+              showingFirstHalf
+                ? `Roll boards ${BOARDS_ON_SCREEN + 1}–${TICKETS_PER_SET}`
+                : 'Roll a new set'
+            }
+            hint={showingFirstHalf ? 'Other half of this set' : 'Six fresh boards'}
+          />
 
           <div className="controls-right">
             <label className="field">
@@ -181,8 +209,8 @@ export default function App() {
       </main>
 
       <footer className="app-footer">
-        Tap numbers to daub them, roll the die for a brand new board, or export as many printable
-        boards as you need. One set of {TICKETS_PER_SET} boards always shares the full 1–90 pool.
+        Tap numbers to daub them, roll the die for the next three boards, or export as many
+        printable boards as you need.
       </footer>
     </div>
   )

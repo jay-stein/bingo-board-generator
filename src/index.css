@@ -80,7 +80,7 @@ button {
 .app-header {
   position: relative;
   z-index: 1;
-  max-width: 960px;
+  max-width: 1080px;
   margin: 0 auto 26px;
 }
 
@@ -174,7 +174,7 @@ h1 {
   display: flex;
   flex-direction: column;
   gap: 22px;
-  max-width: 960px;
+  max-width: 1080px;
   margin: 0 auto;
 }
 
@@ -234,9 +234,9 @@ h1 {
 }
 
 .boards {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 430px), 1fr));
+  gap: 16px 18px;
 }
 
 .board-slot {
@@ -290,12 +290,8 @@ h1 {
   animation-delay: calc(var(--cell-index) * 8ms);
 }
 
-.boards .board-slot:nth-child(2) .cell {
-  animation-delay: calc(var(--cell-index) * 8ms + 70ms);
-}
-
-.boards .board-slot:nth-child(3) .cell {
-  animation-delay: calc(var(--cell-index) * 8ms + 140ms);
+.boards .board-slot .cell {
+  animation-delay: calc(var(--cell-index) * 8ms + var(--slot-delay, 0ms));
 }
 
 .cell:nth-child(9n) {
@@ -542,7 +538,7 @@ h1 {
 .app-footer {
   position: relative;
   z-index: 1;
-  max-width: 960px;
+  max-width: 1080px;
   margin: 26px auto 0;
   color: rgba(167, 172, 209, 0.75);
   font-size: 0.82rem;

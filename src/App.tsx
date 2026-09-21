@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { BingoBoard } from './components/BingoBoard'
 import { DiceButton } from './components/DiceButton'
 import { generateBoards, generateTicketSet, TICKETS_PER_SET, type Ticket } from './lib/bingo'
@@ -7,7 +7,6 @@ import { BOARDS_PER_PAGE, downloadBoardsPdf } from './lib/pdf'
 const ROLL_DURATION_MS = 620
 const COUNT_MIN = 1
 const COUNT_MAX = 60
-const BOARDS_ON_SCREEN = 3
 
 const BACKDROP_BALLS = [
   { value: 7, top: '6%', left: '3%', size: 108, delay: -1 },
@@ -23,11 +22,10 @@ const BACKDROP_BALLS = [
 interface ShownSet {
   tickets: Ticket[]
   setNumber: number
-  offset: number
 }
 
 function dealSet(setNumber: number): ShownSet {
-  return { tickets: generateTicketSet(), setNumber, offset: 0 }
+  return { tickets: generateTicketSet(), setNumber }
 }
 
 function clampCount(raw: string): number {
@@ -50,27 +48,20 @@ export default function App() {
 
   const boardCount = clampCount(countText)
   const pageCount = Math.ceil(boardCount / BOARDS_PER_PAGE)
-  const visibleBoards = shown.tickets.slice(shown.offset, shown.offset + BOARDS_ON_SCREEN)
-  const showingFirstHalf = shown.offset === 0
 
   const roll = useCallback(() => {
     if (rolling) return
     setRolling(true)
-    const firstHalf = showingFirstHalf
     const nextSetNumber = setCounter.current + 1
 
     rollTimer.current = window.setTimeout(() => {
-      if (firstHalf) {
-        setShown((previous) => ({ ...previous, offset: BOARDS_ON_SCREEN }))
-      } else {
-        setCounter.current = nextSetNumber
-        setShown(dealSet(nextSetNumber))
-      }
+      setCounter.current = nextSetNumber
+      setShown(dealSet(nextSetNumber))
       setMarked(new Set())
       setRollKey((key) => key + 1)
       setRolling(false)
     }, ROLL_DURATION_MS)
-  }, [rolling, showingFirstHalf])
+  }, [rolling])
 
   const toggleMark = useCallback((value: number) => {
     setMarked((previous) => {
@@ -138,9 +129,9 @@ export default function App() {
           <div className="board-meta">
             <span className="meta-chip">Set #{shown.setNumber}</span>
             <span className="meta-chip">
-              Boards {shown.offset + 1}–{shown.offset + BOARDS_ON_SCREEN} of {TICKETS_PER_SET}
+              Full set of {TICKETS_PER_SET}
             </span>
-            <span className="meta-chip meta-chip-soft">All 90 numbers in this set</span>
+            <span className="meta-chip meta-chip-soft">Every number 1–90 exactly once</span>
             {marked.size > 0 && (
               <button type="button" className="meta-clear" onClick={clearMarks}>
                 Clear {marked.size} daub{marked.size === 1 ? '' : 's'}
@@ -148,9 +139,13 @@ export default function App() {
             )}
           </div>
           <div className="boards">
-            {visibleBoards.map((ticket, index) => (
-              <div className="board-slot" key={`${shown.setNumber}-${shown.offset}-${index}`}>
-                <span className="board-label">Board {shown.offset + index + 1}</span>
+            {shown.tickets.map((ticket, index) => (
+              <div
+                className="board-slot"
+                key={`${shown.setNumber}-${index}`}
+                style={{ '--slot-delay': `${index * 70}ms` } as CSSProperties}
+              >
+                <span className="board-label">Board {index + 1}</span>
                 <BingoBoard
                   ticket={ticket}
                   marked={marked}
@@ -167,12 +162,8 @@ export default function App() {
           <DiceButton
             rolling={rolling}
             onRoll={roll}
-            label={
-              showingFirstHalf
-                ? `Roll boards ${BOARDS_ON_SCREEN + 1}–${TICKETS_PER_SET}`
-                : 'Roll a new set'
-            }
-            hint={showingFirstHalf ? 'Other half of this set' : 'Six fresh boards'}
+            label="Roll a new set"
+            hint="Six fresh boards"
           />
 
           <div className="controls-right">
@@ -209,8 +200,8 @@ export default function App() {
       </main>
 
       <footer className="app-footer">
-        Tap numbers to daub them, roll the die for the next three boards, or export as many
-        printable boards as you need.
+        Tap numbers to daub them, roll the die for a fresh set of six, or export as many printable
+        boards as you need.
       </footer>
     </div>
   )
